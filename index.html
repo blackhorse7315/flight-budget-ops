@@ -362,7 +362,7 @@
 
             header.innerHTML = `
                 <div class="flex items-center gap-4">
-                    ${selectedSummaryCat ? `<button onclick="closeDrilldown()" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>` : ''}
+                    ${selectedSummaryCat ? `<button onclick="closeDrilldown()" class="p-2 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>` : ''}
                     <div>
                         <h2 class="text-xl font-black text-slate-800 flex items-center gap-2 uppercase tracking-tight">
                             ${selectedSummaryCat ? `<span class="bg-blue-50 text-blue-600 p-2 rounded-xl"><i data-lucide="${selectedSummaryCat.type === 'crew' ? 'plane' : 'credit-card'}" class="w-5 h-5"></i></span> Rincian: ${selectedSummaryCat.category}` : 
@@ -391,7 +391,7 @@
                 body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold text-slate-700">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}<br><span class="opacity-50">${item.allowanceDays} Hr</span></td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}<br><span class="opacity-50">${item.transportDays} Hr</span></td><td class="px-8 py-5 text-center font-black">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="duplicateEntry('${item.id}', 'crew')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'others') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Kategori / Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-purple-600"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-blue-600" title="Transfer ke Dana Masuk Kas"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'income') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Keterangan</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
                 body.innerHTML = incomeEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5">${item.remarks}</td><td class="px-8 py-5 text-center font-black text-emerald-600">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', 'income')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'income')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
@@ -434,10 +434,11 @@
         async function transferToKas(id) {
             const item = otherEntries.find(e => e.id.toString() === id.toString());
             if(!item) return;
+            // DIUBAH: Masuk ke kasInEntries (Dana Masuk Kas)
             const newEntry = { id: Date.now().toString(), date: item.date, item: `(Trans) ${item.item}`, amount: item.amount, remarks: `Kategori: ${item.category}` };
-            kasOutEntries.push(newEntry);
-            await syncToSheet("KasOut", "add", newEntry);
-            showToast("Berhasil ditransfer ke Kas");
+            kasInEntries.push(newEntry);
+            await syncToSheet("KasIn", "add", newEntry);
+            showToast("Berhasil ditransfer ke Dana Masuk Kas");
             render();
         }
 
@@ -476,7 +477,7 @@
             const container = document.getElementById('form-fields');
             let html = `<input type="hidden" name="formType" value="${type}">`;
             
-            // Kolom Tanggal Universal
+            // Kolom Tanggal Universal (Wajib diisi)
             html += `<div class="space-y-4">
                 <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal</label>
                 <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>`;
@@ -493,32 +494,32 @@
                     </div></div>`;
                 }
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">Item / Keperluan</label>
-                    <input required name="item" type="text" value="${data ? data.item : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <input required name="item" type="text" value="${data ? data.item : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500 transition-colors"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</label>
                     <div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
                     <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-black text-lg text-slate-700" onfocus="if(this.value=='0')this.value=''"></div></div>`;
             } else if (type === 'crew') {
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nama Lengkap</label>
-                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Jabatan</label>
-                    <select name="role" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700">
+                    <select name="role" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
                         <option value="Pilot" ${data && data.role === 'Pilot' ? 'selected' : ''}>Pilot</option>
                         <option value="Engineer" ${data && data.role === 'Engineer' ? 'selected' : ''}>Engineer</option>
                     </select></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100"><label class="text-[10px] font-black uppercase text-indigo-400">Allowance (Hari)</label>
-                        <input required name="allowanceDays" type="number" value="${data ? data.allowanceDays : 0}" class="w-full bg-transparent outline-none font-black text-xl" onfocus="if(this.value=='0')this.value=''"></div>
+                        <input required name="allowanceDays" type="number" value="${data ? data.allowanceDays : 0}" class="w-full bg-transparent outline-none font-black text-xl text-indigo-700" onfocus="if(this.value=='0')this.value=''"></div>
                         <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100"><label class="text-[10px] font-black uppercase text-emerald-400">Trans (Hari)</label>
-                        <input required name="transportDays" type="number" value="${data ? data.transportDays : 0}" class="w-full bg-transparent outline-none font-black text-xl" onfocus="if(this.value=='0')this.value=''"></div>
+                        <input required name="transportDays" type="number" value="${data ? data.transportDays : 0}" class="w-full bg-transparent outline-none font-black text-xl text-emerald-700" onfocus="if(this.value=='0')this.value=''"></div>
                     </div>
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200"><label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Transport Rate / Hari</label>
                     <input required name="transportRate" type="number" value="${data ? data.transportRate : 300000}" class="w-full bg-transparent outline-none font-black text-xl text-slate-700" onfocus="if(this.value=='0')this.value=''"></div>`;
             } else if (type === 'income') {
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Keterangan Dana</label>
-                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nominal</label>
                     <div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
-                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 font-black text-lg" onfocus="if(this.value=='0')this.value=''"></div></div>`;
+                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 outline-none font-black text-lg" onfocus="if(this.value=='0')this.value=''"></div></div>`;
             }
             
             html += `</div><div class="space-y-2 pt-2"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Remarks</label>
