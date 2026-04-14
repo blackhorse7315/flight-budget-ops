@@ -112,12 +112,12 @@
             </div>
         </div>
 
-        <!-- Dashboard Dana Kas (Muncul hanya di tab Kas) -->
+        <!-- Dashboard Dana Kas -->
         <div id="kas-stats" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
                 <div class="flex justify-between items-start mb-3">
                     <div class="bg-blue-50 p-3 rounded-2xl text-blue-600"><i data-lucide="database" class="w-6 h-6"></i></div>
-                    <span class="text-[9px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg uppercase">Dana Kas</span>
+                    <span class="text-[9px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg uppercase tracking-widest">Dana Kas</span>
                 </div>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Total Dana Masuk Kas</p>
                 <h3 id="stat-kas-in-total" class="text-xl font-black text-blue-600 tracking-tight">Rp 0</h3>
@@ -125,7 +125,7 @@
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
                 <div class="flex justify-between items-start mb-3">
                     <div class="bg-purple-50 p-3 rounded-2xl text-purple-600"><i data-lucide="external-link" class="w-6 h-6"></i></div>
-                    <span class="text-[9px] font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded-lg uppercase">Luar</span>
+                    <span class="text-[9px] font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded-lg uppercase tracking-widest">Luar</span>
                 </div>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Total Pemasukan Luar</p>
                 <h3 id="stat-kas-out-total" class="text-xl font-black text-purple-600 tracking-tight">Rp 0</h3>
@@ -174,7 +174,7 @@
             </div>
             <div class="p-8 border-t border-slate-100 bg-slate-50 flex gap-4 shrink-0">
                 <button type="button" onclick="closeModal()" class="flex-1 py-4 text-slate-500 font-black text-xs uppercase rounded-[1.5rem] border border-slate-200 hover:bg-white active:scale-95">Batal</button>
-                <button form="mainForm" type="submit" class="flex-[2] py-4 bg-blue-600 text-white font-black text-xs uppercase rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3">
+                <button form="mainForm" type="submit" class="flex-[2] py-4 bg-blue-600 shadow-blue-200 text-white font-black text-xs uppercase rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3">
                     <i data-lucide="check-circle-2" class="w-5 h-5"></i> Simpan
                 </button>
             </div>
@@ -217,6 +217,23 @@
             return isNegative ? `-${formatted}` : formatted;
         }
 
+        // FUNGSI BARU: Format Tanggal ke Tampilan Indonesia (14 April 2026)
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return "-";
+            try {
+                const dateObj = new Date(dateStr);
+                // Jika input dari kalender HTML (YYYY-MM-DD), Date constructor sudah cukup
+                // Intl untuk melokalkan nama bulan ke Indonesia
+                return new Intl.DateTimeFormat('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                }).format(dateObj);
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
         function showToast(msg) {
             const el = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
@@ -250,7 +267,7 @@
                     method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ sheet: sheetName, action: action, data: payload })
                 });
-                showToast("Update Berhasil!");
+                showToast("Berhasil!");
             } catch (error) { showToast("Gagal Update."); }
             finally { document.getElementById('loader').style.display = 'none'; }
         }
@@ -341,8 +358,15 @@
             const header = document.getElementById('content-header');
             const head = document.getElementById('table-head');
             const body = document.getElementById('table-body');
+            
+            // Helper sort (paling baru di atas)
             const sortByDate = (arr) => arr.sort((a, b) => new Date(b.date) - new Date(a.date));
-            sortByDate(otherEntries); sortByDate(incomeEntries); sortByDate(kasInEntries); sortByDate(kasOutEntries);
+            sortByDate(crewEntries);
+            sortByDate(otherEntries); 
+            sortByDate(incomeEntries); 
+            sortByDate(kasInEntries); 
+            sortByDate(kasOutEntries);
+            
             calculateTotals();
 
             let headerTitle = activeTab === 'crew' ? 'Rincian Crew' : activeTab === 'others' ? 'Others' : activeTab === 'income' ? 'Income' : activeTab === 'kas' ? 'Dana Kas' : 'Summary';
@@ -356,7 +380,7 @@
                             ${selectedSummaryCat ? `<span class="bg-blue-50 text-blue-600 p-2 rounded-xl"><i data-lucide="${selectedSummaryCat.type === 'crew' ? 'plane' : 'credit-card'}" class="w-5 h-5"></i></span> Rincian: ${selectedSummaryCat.category}` : 
                             `<i data-lucide="${iconTab}" class="${activeTab === 'crew' ? 'text-blue-600' : 'text-purple-600'}"></i> ${headerTitle}`}
                         </h2>
-                        <p class="text-xs text-slate-400 font-medium mt-1">Manajemen data harian aplikasi FinAir Pro.</p>
+                        <p class="text-xs text-slate-400 font-medium mt-1">Data operasional aplikasi FinAir Pro.</p>
                     </div>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
@@ -368,48 +392,41 @@
             if (selectedSummaryCat) {
                 if (selectedSummaryCat.type === 'crew') {
                     head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Nama & Jabatan</th><th class="px-8 py-5">Allowance</th><th class="px-8 py-5">Transport</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                    body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${item.name}<br><span class="text-[10px] uppercase">${item.role}</span></td><td class="px-8 py-5">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}</td><td class="px-8 py-5">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}</td><td class="px-8 py-5 text-center font-bold">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td></tr>`).join('');
+                    body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${item.name}<br><span class="text-[10px] uppercase font-black text-slate-400">${item.role}</span></td><td class="px-8 py-5">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}</td><td class="px-8 py-5">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}</td><td class="px-8 py-5 text-center font-bold">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td></tr>`).join('');
                 } else {
                     const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
                     head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item / Keperluan</th><th class="px-8 py-5 text-right">Nominal</th></tr>`;
-                    body.innerHTML = filtered.map(item => `<tr><td class="px-8 py-5 font-bold">${item.date}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}<br><span class="text-[10px] italic font-normal">${item.remarks}</span></td><td class="px-8 py-5 text-right font-black">${formatIDR(item.amount)}</td></tr>`).join('');
+                    body.innerHTML = filtered.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}<br><span class="text-[10px] italic font-normal">${item.remarks}</span></td><td class="px-8 py-5 text-right font-black">${formatIDR(item.amount)}</td></tr>`).join('');
                 }
             } else if (activeTab === 'crew') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Nama Crew</th><th class="px-8 py-5">Allowance</th><th class="px-8 py-5">Transport</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}<br><span class="opacity-50">${item.allowanceDays} Hr</span></td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}<br><span class="opacity-50">${item.transportDays} Hr</span></td><td class="px-8 py-5 text-center font-black">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="duplicateEntry('${item.id}', 'crew')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = crewEntries.length === 0 ? `<tr><td colspan="5" class="px-8 py-16 text-center text-slate-300">Belum ada data.</td></tr>` : crewEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}<br><span class="opacity-50">${item.allowanceDays} Hr</span></td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}<br><span class="opacity-50">${item.transportDays} Hr</span></td><td class="px-8 py-5 text-center font-black">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="duplicateEntry('${item.id}', 'crew')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'others') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Kategori / Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${item.date}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-purple-600"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = otherEntries.length === 0 ? `<tr><td colspan="4" class="px-8 py-16 text-center text-slate-300">Belum ada data.</td></tr>` : otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-purple-600"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'income') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Keterangan</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = incomeEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${item.date}</td><td class="px-8 py-5">${item.remarks}</td><td class="px-8 py-5 text-center font-black text-emerald-600">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', 'income')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'income')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = incomeEntries.length === 0 ? `<tr><td colspan="4" class="px-8 py-16 text-center text-slate-300">Belum ada data.</td></tr>` : incomeEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5">${item.remarks}</td><td class="px-8 py-5 text-center font-black text-emerald-600">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', 'income')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'income')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'kas') {
                 const list = activeKasView === 'masuk' ? kasInEntries : kasOutEntries;
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = list.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${item.date}</td><td class="px-8 py-5 font-bold">${item.item}</td><td class="px-8 py-5 text-center font-black ${activeKasView==='masuk'?'text-blue-600':'text-purple-600'}">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = list.length === 0 ? `<tr><td colspan="4" class="px-8 py-16 text-center text-slate-300">Belum ada data.</td></tr>` : list.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.item}</td><td class="px-8 py-5 text-center font-black ${activeKasView==='masuk'?'text-blue-600':'text-purple-600'}">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Kategori</th><th class="px-8 py-5 text-center">Item</th><th class="px-8 py-5 text-center">Kontribusi</th><th class="px-8 py-5 text-right">Total Akumulasi</th></tr>`;
                 const summaryData = getSummaryData().filter(s => s.total > 0);
                 const grand = calculateTotals().crewTotal + calculateTotals().otherTotal;
-                body.innerHTML = summaryData.map(sum => `<tr onclick='selectedSummaryCat = ${JSON.stringify(sum)}; render();' class="hover:bg-slate-50 cursor-pointer group"><td class="px-8 py-6 flex items-center gap-4"><div class="p-3 rounded-xl ${sum.type==='crew'?'bg-blue-50 text-blue-600':'bg-purple-50 text-purple-600'}"><i data-lucide="${sum.type==='crew'?'plane':'credit-card'}" class="w-5 h-5"></i></div><span class="font-black text-slate-800">${sum.category}</span></td><td class="px-8 py-6 text-center font-bold text-slate-400">${sum.count} item</td><td class="px-8 py-6"><div class="w-32 mx-auto h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${sum.type==='crew'?'bg-blue-500':'bg-purple-500'}" style="width: ${(sum.total/grand)*100}%"></div></div></td><td class="px-8 py-6 text-right font-black text-lg">${formatIDR(sum.total)} <i data-lucide="chevron-right" class="w-4 h-4 inline text-slate-300"></i></td></tr>`).join('');
+                body.innerHTML = summaryData.length === 0 ? `<tr><td colspan="4" class="px-8 py-16 text-center text-slate-300">Data summary kosong.</td></tr>` : summaryData.map(sum => `<tr onclick='selectedSummaryCat = ${JSON.stringify(sum)}; render();' class="hover:bg-slate-50 cursor-pointer group"><td class="px-8 py-6 flex items-center gap-4"><div class="p-3 rounded-xl ${sum.type==='crew'?'bg-blue-50 text-blue-600':'bg-purple-50 text-purple-600'}"><i data-lucide="${sum.type==='crew'?'plane':'credit-card'}" class="w-5 h-5"></i></div><span class="font-black text-slate-800">${sum.category}</span></td><td class="px-8 py-6 text-center font-bold text-slate-400">${sum.count} item</td><td class="px-8 py-6"><div class="w-32 mx-auto h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${sum.type==='crew'?'bg-blue-500':'bg-purple-500'}" style="width: ${(sum.total/grand)*100}%"></div></div></td><td class="px-8 py-6 text-right font-black text-lg">${formatIDR(sum.total)} <i data-lucide="chevron-right" class="w-4 h-4 inline text-slate-300"></i></td></tr>`).join('');
             }
             lucide.createIcons();
         }
 
-        // --- Fitur Export Baru ---
+        // --- Export & Duplikasi (Tetap Ada) ---
         function exportAllSummaryExcel() {
             const data = getSummaryData();
             let csv = "data:text/csv;charset=utf-8,";
             csv += "Kategori,Jumlah Item,Tipe,Total Akumulasi\r\n";
-            data.forEach(s => {
-                csv += `"${s.category}",${s.count},"${s.type}",${s.total}\r\n`;
-            });
-            const link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csv));
-            link.setAttribute("download", "Summary_Laporan_Keuangan.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            data.forEach(s => csv += `"${s.category}",${s.count},"${s.type}",${s.total}\r\n`);
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Summary_FinAir.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         function exportCategoryExcel() {
@@ -422,48 +439,17 @@
                 let row = selectedSummaryCat.type === 'crew' ? [`"${item.name}"`, `"${item.role}"`, item.allowanceDays, item.transportDays, `"${item.remarks || ''}"`, (parseInt(item.allowanceDays)*(item.role==='Pilot'?PILOT_RATE:ENGINE_RATE))+(parseInt(item.transportDays)*parseInt(item.transportRate))] : [`"${item.date}"`, `"${item.category}"`, `"${item.item}"`, `"${item.remarks || ''}"`, item.amount];
                 csv += row.join(",") + "\r\n";
             });
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `Detail_${selectedSummaryCat.category.replace(/ /g, "_")}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `Detail_${selectedSummaryCat.category}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // --- Sisanya Tetap Sama (Duplikat, Edit, Delete, Form) ---
-        function transferToKas(id) {
+        async function transferToKas(id) {
             const item = otherEntries.find(e => e.id.toString() === id.toString());
             if(!item) return;
             const newEntry = { id: Date.now().toString(), date: item.date, item: `(Trans) ${item.item}`, amount: item.amount, remarks: `Kategori: ${item.category}` };
             kasOutEntries.push(newEntry);
-            syncToSheet("KasOut", "add", newEntry);
-            showToast("Ditransfer ke Pemasukan Luar");
+            await syncToSheet("KasOut", "add", newEntry);
+            showToast("Berhasil ditransfer ke Kas");
             render();
-        }
-
-        function duplicateEntry(id, type) {
-            editingId = null;
-            let data;
-            const findById = (arr) => arr.find(e => e.id.toString() === id.toString());
-            if(type === 'crew') data = findById(crewEntries);
-            else if(type === 'others') data = findById(otherEntries);
-            else if(type === 'income') data = findById(incomeEntries);
-            else if(type === 'kasIn') data = findById(kasInEntries);
-            else data = findById(kasOutEntries);
-            injectForm(type, data);
-            document.getElementById('modal-container').classList.remove('hidden');
-            document.getElementById('modal-title').innerText = "Duplikat Data";
-            lucide.createIcons();
-        }
-
-        function editEntry(id, type) {
-            editingId = id;
-            let data;
-            const findById = (arr) => arr.find(e => e.id.toString() === id.toString());
-            if(type === 'crew') data = findById(crewEntries);
-            else if(type === 'others') data = findById(otherEntries);
-            else if(type === 'income') data = findById(incomeEntries);
-            else if(type === 'kasIn') data = findById(kasInEntries);
-            else data = findById(kasOutEntries);
-            injectForm(type, data);
-            document.getElementById('modal-container').classList.remove('hidden');
-            document.getElementById('modal-title').innerText = "Edit Data";
-            lucide.createIcons();
         }
 
         function openModal() {
@@ -477,13 +463,33 @@
 
         function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
 
+        function duplicateEntry(id, type) {
+            editingId = null;
+            const findById = (arr) => arr.find(e => e.id.toString() === id.toString());
+            let data = (type === 'crew') ? findById(crewEntries) : (type === 'others') ? findById(otherEntries) : (type === 'income') ? findById(incomeEntries) : (type === 'kasIn') ? findById(kasInEntries) : findById(kasOutEntries);
+            injectForm(type, data);
+            document.getElementById('modal-container').classList.remove('hidden');
+            document.getElementById('modal-title').innerText = "Duplikat Data";
+            lucide.createIcons();
+        }
+
+        function editEntry(id, type) {
+            editingId = id;
+            const findById = (arr) => arr.find(e => e.id.toString() === id.toString());
+            let data = (type === 'crew') ? findById(crewEntries) : (type === 'others') ? findById(otherEntries) : (type === 'income') ? findById(incomeEntries) : (type === 'kasIn') ? findById(kasInEntries) : findById(kasOutEntries);
+            injectForm(type, data);
+            document.getElementById('modal-container').classList.remove('hidden');
+            document.getElementById('modal-title').innerText = "Edit Data";
+            lucide.createIcons();
+        }
+
         function injectForm(type, data = null) {
             const container = document.getElementById('form-fields');
             let html = `<input type="hidden" name="formType" value="${type}">`;
             if (type === 'others' || type === 'kasIn' || type === 'kasOut') {
                 html += `<div class="space-y-4">
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal</label>
-                    <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>`;
+                    <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>`;
                 if (type === 'others') {
                     html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kategori</label>
                     <select name="category" onchange="toggleCustomCategory(this.value)" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
@@ -494,44 +500,44 @@
                         <input name="customCategory" type="text" value="${data && !PREDEFINED_CATEGORIES.includes(data.category) ? data.category : ''}" class="w-full px-5 py-3 rounded-2xl border-2 border-dashed border-indigo-200 outline-none font-bold text-slate-700">
                     </div></div>`;
                 }
-                html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">Item / Keperluan</label>
-                    <input required name="item" type="text" value="${data ? data.item : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500 transition-colors"></div>
+                html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Item / Keperluan</label>
+                    <input required name="item" type="text" value="${data ? data.item : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</label>
                     <div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
                     <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-black text-lg text-slate-700" onfocus="if(this.value=='0')this.value=''"></div></div>
                 </div>`;
             } else if (type === 'crew') {
                 html += `<div class="space-y-4">
-                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Lengkap</label>
-                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-bold text-slate-700 focus:border-blue-500"></div>
-                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jabatan</label>
-                    <select name="role" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-bold bg-white text-slate-700 cursor-pointer">
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nama Lengkap</label>
+                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Jabatan</label>
+                    <select name="role" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-bold bg-white text-slate-700">
                         <option value="Pilot" ${data && data.role === 'Pilot' ? 'selected' : ''}>Pilot</option>
                         <option value="Engineer" ${data && data.role === 'Engineer' ? 'selected' : ''}>Engineer</option>
                     </select></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100"><label class="text-[10px] font-black uppercase text-indigo-400">Allowance (Hari)</label>
-                        <input required name="allowanceDays" type="number" min="0" value="${data ? data.allowanceDays : 0}" class="w-full bg-transparent outline-none font-black text-xl text-indigo-700" onfocus="if(this.value=='0')this.value=''"></div>
+                        <input required name="allowanceDays" type="number" value="${data ? data.allowanceDays : 0}" class="w-full bg-transparent outline-none font-black text-xl" onfocus="if(this.value=='0')this.value=''"></div>
                         <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100"><label class="text-[10px] font-black uppercase text-emerald-400">Trans (Hari)</label>
-                        <input required name="transportDays" type="number" min="0" value="${data ? data.transportDays : 0}" class="w-full bg-transparent outline-none font-black text-xl text-emerald-700" onfocus="if(this.value=='0')this.value=''"></div>
+                        <input required name="transportDays" type="number" value="${data ? data.transportDays : 0}" class="w-full bg-transparent outline-none font-black text-xl" onfocus="if(this.value=='0')this.value=''"></div>
                     </div>
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200"><label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Transport Rate / Hari</label>
-                    <input required name="transportRate" type="number" min="0" value="${data ? data.transportRate : 300000}" class="w-full bg-transparent outline-none font-black text-xl text-slate-700" onfocus="if(this.value=='0')this.value=''"></div>
+                    <input required name="transportRate" type="number" value="${data ? data.transportRate : 300000}" class="w-full bg-transparent outline-none font-black text-xl text-slate-700" onfocus="if(this.value=='0')this.value=''"></div>
                 </div>`;
             } else if (type === 'income') {
                 html += `<div class="space-y-4">
-                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal Transfer</label>
-                    <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>
-                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Keterangan Dana</label>
-                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-bold text-slate-700 focus:border-blue-500"></div>
-                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</label>
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Tanggal</label>
+                    <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Keterangan Dana</label>
+                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nominal</label>
                     <div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
-                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 outline-none font-black text-lg text-emerald-700" onfocus="if(this.value=='0')this.value=''"></div></div>
+                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 outline-none font-black text-lg" onfocus="if(this.value=='0')this.value=''"></div></div>
                 </div>`;
             }
             html += `<div class="space-y-2 pt-2"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Remarks</label>
             <textarea name="remarks" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none text-sm min-h-[100px] text-slate-600 focus:border-blue-500">${data ? data.remarks : ''}</textarea></div>`;
-            container.innerHTML = html;
+            container.innerHTML = html; lucide.createIcons();
         }
 
         function toggleCustomCategory(val) {
