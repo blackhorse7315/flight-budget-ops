@@ -136,7 +136,7 @@
                 </div>
                 <div class="relative z-10">
                     <p class="text-[10px] text-slate-300 font-bold uppercase opacity-80 mb-1">Saldo Kas Bersih</p>
-                    <h3 id="stat-kas-balance" class="text-2xl font-black tracking-tight">Rp 0</h3>
+                    <h3 id="stat-kas-balance" class="text-2xl font-black tracking-tight text-white">Rp 0</h3>
                 </div>
             </div>
         </div>
@@ -173,8 +173,8 @@
                 </form>
             </div>
             <div class="p-8 border-t border-slate-100 bg-slate-50 flex gap-4 shrink-0">
-                <button type="button" onclick="closeModal()" class="flex-1 py-4 text-slate-500 font-black text-xs uppercase rounded-[1.5rem] border border-slate-200 hover:bg-white transition-all active:scale-95">Batal</button>
-                <button form="mainForm" type="submit" class="flex-[2] py-4 bg-blue-600 shadow-blue-200 text-white font-black text-xs uppercase rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3">
+                <button type="button" onclick="closeModal()" class="flex-1 py-4 text-slate-500 font-black text-xs uppercase rounded-[1.5rem] border border-slate-200 hover:bg-white transition-all active:scale-95 text-center">Batal</button>
+                <button form="mainForm" type="submit" class="flex-[2] py-4 bg-blue-600 text-white font-black text-xs uppercase rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3">
                     <i data-lucide="check-circle-2" class="w-5 h-5"></i> Simpan
                 </button>
             </div>
@@ -187,8 +187,8 @@
     </div>
 
     <script>
-        // --- KONFIGURASI GOOGLE SHEET URL ---
-        const SHEET_URL = "https://script.google.com/macros/s/AKfycbze9uXIf6fuyM_lQxZ68jsRBjUmRP_PPhVqzzjyGP2qitpo5TkelA9hqWm_OFF0F3xMYA/exec"; 
+        // --- State Management ---
+        const SHEET_URL = "https://script.google.com/macros/s/AKfycbze9uXIf6fuyM_lQxZ68jsRBjUmRP_PPhVqzzjyGP2qitpo5TkelA9hqWm_OFF0F3xMYA/exec"; // Masukkan URL Google Apps Script Anda di sini
 
         const PILOT_RATE = 600000;
         const ENGINEER_RATE = 480000;
@@ -196,6 +196,7 @@
             'Catering', 'Ground Handling', 'Lounge', 'ARO', 
             'Towing Skatek', 'Entertaint Driver Pertamina', 'Sewa Pick Up'
         ];
+        const PREDEFINED_ISSUERS = ['Capt. Ramdan', 'Sukyono'];
 
         let crewEntries = [];
         let otherEntries = [];
@@ -221,11 +222,7 @@
             if (!dateStr) return "-";
             try {
                 const dateObj = new Date(dateStr);
-                return new Intl.DateTimeFormat('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                }).format(dateObj);
+                return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(dateObj);
             } catch (e) { return dateStr; }
         }
 
@@ -262,7 +259,7 @@
                     method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ sheet: sheetName, action: action, data: payload })
                 });
-                showToast("Update Berhasil!");
+                showToast("Berhasil!");
             } catch (error) { showToast("Gagal Update."); }
             finally { document.getElementById('loader').style.display = 'none'; }
         }
@@ -368,7 +365,7 @@
                             ${selectedSummaryCat ? `<span class="bg-blue-50 text-blue-600 p-2 rounded-xl"><i data-lucide="${selectedSummaryCat.type === 'crew' ? 'plane' : 'credit-card'}" class="w-5 h-5"></i></span> Rincian: ${selectedSummaryCat.category}` : 
                             `<i data-lucide="${iconTab}" class="${activeTab === 'crew' ? 'text-blue-600' : 'text-purple-600'}"></i> ${headerTitle}`}
                         </h2>
-                        <p class="text-xs text-slate-400 font-medium mt-1">Data operasional harian aplikasi FinAir Pro.</p>
+                        <p class="text-xs text-slate-400 font-medium mt-1">Data operasional harian FinAir Pro.</p>
                     </div>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
@@ -379,27 +376,55 @@
 
             if (selectedSummaryCat) {
                 if (selectedSummaryCat.type === 'crew') {
-                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama & Jabatan</th><th class="px-8 py-5">Allowance</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                    body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}<br><span class="text-[10px] uppercase text-slate-400">${item.role}</span></td><td class="px-8 py-5">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}</td><td class="px-8 py-5 text-center font-bold">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td></tr>`).join('');
+                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama & Jabatan</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
+                    body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}<br><span class="text-[10px] uppercase text-slate-400">${item.role}</span></td><td class="px-8 py-5 text-center font-bold">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td></tr>`).join('');
                 } else {
                     const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
                     head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item / Keperluan</th><th class="px-8 py-5 text-right">Nominal</th></tr>`;
                     body.innerHTML = filtered.map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}<br><span class="text-[10px] italic font-normal">${item.remarks}</span></td><td class="px-8 py-5 text-right font-black">${formatIDR(item.amount)}</td></tr>`).join('');
                 }
             } else if (activeTab === 'crew') {
-                head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama Crew</th><th class="px-8 py-5">Allowance</th><th class="px-8 py-5">Transport</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold text-slate-700">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE))}<br><span class="opacity-50">${item.allowanceDays} Hr</span></td><td class="px-8 py-5 text-xs">${formatIDR(parseInt(item.transportDays) * parseInt(item.transportRate))}<br><span class="opacity-50">${item.transportDays} Hr</span></td><td class="px-8 py-5 text-center font-black">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="duplicateEntry('${item.id}', 'crew')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama Crew</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
+                body.innerHTML = crewEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold text-slate-700">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-center font-black">${formatIDR((parseInt(item.allowanceDays) * (item.role === 'Pilot' ? PILOT_RATE : ENGINEER_RATE)) + (parseInt(item.transportDays) * parseInt(item.transportRate)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="duplicateEntry('${item.id}', 'crew')" class="text-emerald-600" title="Duplikat"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'others') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Kategori / Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-blue-600" title="Transfer ke Dana Masuk Kas"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                body.innerHTML = otherEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase">${item.category}</span><br><span class="font-bold">${item.item}</span></td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="transferToKas('${item.id}')" class="text-blue-600" title="Transfer ke Dana Masuk Kas"><i data-lucide="send" class="w-4 h-4"></i></button><button onclick="duplicateEntry('${item.id}', 'others')" class="text-emerald-600" title="Duplikat"><i data-lucide="copy-plus" class="w-4 h-4"></i></button><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'income') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Keterangan</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
                 body.innerHTML = incomeEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5">${item.remarks}</td><td class="px-8 py-5 text-center font-black text-emerald-600">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', 'income')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'income')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
             } else if (activeTab === 'kas') {
-                const list = activeKasView === 'masuk' ? kasInEntries : kasOutEntries;
-                const accent = activeKasView === 'masuk' ? 'text-blue-600' : 'text-red-600';
-                head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                body.innerHTML = list.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.item}</td><td class="px-8 py-5 text-center font-black ${accent}">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                if (activeKasView === 'masuk') {
+                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
+                    body.innerHTML = kasInEntries.map(item => `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.item}</td><td class="px-8 py-5 text-center font-black text-blue-600">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100"><button onclick="editEntry('${item.id}', 'kasIn')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'kasIn')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
+                } else {
+                    // TAMPILAN PENGELUARAN KAS
+                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item / Oleh</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5">Status</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
+                    body.innerHTML = kasOutEntries.map(item => {
+                        const isBelum = item.status === 'Belum diganti';
+                        return `<tr class="hover:bg-slate-50 group">
+                            <td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td>
+                            <td class="px-8 py-5 font-bold">
+                                ${item.item}<br>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Oleh: ${item.issuedBy || '-'}</span>
+                            </td>
+                            <td class="px-8 py-5 text-center font-black text-red-600">${formatIDR(item.amount)}</td>
+                            <td class="px-8 py-5">
+                                <span class="font-bold text-[11px] uppercase ${isBelum ? 'text-red-600' : 'text-emerald-600'}">
+                                    ${item.status}
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <div class="flex justify-end gap-2">
+                                    ${isBelum ? `<button onclick="updateKasStatus('${item.id}')" class="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black hover:bg-emerald-600 hover:text-white transition-all">SUDAH DIGANTI</button>` : ''}
+                                    <div class="opacity-0 group-hover:opacity-100 flex gap-2">
+                                        <button onclick="editEntry('${item.id}', 'kasOut')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                        <button onclick="deleteEntry('${item.id}', 'kasOut')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
             } else {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Kategori</th><th class="px-8 py-5 text-center">Item</th><th class="px-8 py-5 text-center">Kontribusi</th><th class="px-8 py-5 text-right">Total Akumulasi</th></tr>`;
                 const summaryData = getSummaryData().filter(s => s.total > 0);
@@ -409,32 +434,20 @@
             lucide.createIcons();
         }
 
-        // --- Export & Duplikasi ---
-        function exportAllSummaryExcel() {
-            const data = getSummaryData();
-            let csv = "data:text/csv;charset=utf-8,";
-            csv += "Kategori,Jumlah Item,Tipe,Total Akumulasi\r\n";
-            data.forEach(s => csv += `"${s.category}",${s.count},"${s.type}",${s.total}\r\n`);
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Summary_FinAir.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
-        function exportCategoryExcel() {
-            if (!selectedSummaryCat) return;
-            let csv = "data:text/csv;charset=utf-8,";
-            const headers = selectedSummaryCat.type === 'crew' ? ["Tanggal", "Nama", "Role", "Allowance Days", "Transport Days", "Remarks", "Total"] : ["Tanggal", "Kategori", "Item", "Remarks", "Nominal"];
-            csv += headers.join(",") + "\r\n";
-            const items = selectedSummaryCat.type === 'crew' ? crewEntries : otherEntries.filter(e => e.category === selectedSummaryCat.category);
-            items.forEach(item => {
-                let row = selectedSummaryCat.type === 'crew' ? [`"${item.date}"`, `"${item.name}"`, `"${item.role}"`, item.allowanceDays, item.transportDays, `"${item.remarks || ''}"`, (parseInt(item.allowanceDays)*(item.role==='Pilot'?PILOT_RATE:ENGINE_RATE))+(parseInt(item.transportDays)*parseInt(item.transportRate))] : [`"${item.date}"`, `"${item.category}"`, `"${item.item}"`, `"${item.remarks || ''}"`, item.amount];
-                csv += row.join(",") + "\r\n";
-            });
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `Detail_${selectedSummaryCat.category}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        // --- Fitur Baru: Update Status Kas ---
+        async function updateKasStatus(id) {
+            const index = kasOutEntries.findIndex(e => e.id.toString() === id.toString());
+            if (index === -1) return;
+            const updated = { ...kasOutEntries[index], status: 'Sudah diganti' };
+            kasOutEntries[index] = updated;
+            await syncToSheet("KasOut", "update", updated);
+            showToast("Status diperbarui!");
+            render();
         }
 
         async function transferToKas(id) {
             const item = otherEntries.find(e => e.id.toString() === id.toString());
             if(!item) return;
-            // DIUBAH: Masuk ke kasInEntries (Dana Masuk Kas)
             const newEntry = { id: Date.now().toString(), date: item.date, item: `(Trans) ${item.item}`, amount: item.amount, remarks: `Kategori: ${item.category}` };
             kasInEntries.push(newEntry);
             await syncToSheet("KasIn", "add", newEntry);
@@ -476,16 +489,17 @@
         function injectForm(type, data = null) {
             const container = document.getElementById('form-fields');
             let html = `<input type="hidden" name="formType" value="${type}">`;
+            let formattedDate = new Date().toISOString().split('T')[0];
+            if (data && data.date) { try { formattedDate = new Date(data.date).toISOString().split('T')[0]; } catch(e) {} }
             
-            // Kolom Tanggal Universal (Wajib diisi)
             html += `<div class="space-y-4">
                 <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal</label>
-                <input required name="date" type="date" value="${data ? data.date : new Date().toISOString().split('T')[0]}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>`;
+                <input required name="date" type="date" value="${formattedDate}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>`;
 
             if (type === 'others' || type === 'kasIn' || type === 'kasOut') {
                 if (type === 'others') {
                     html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kategori</label>
-                    <select name="category" onchange="toggleCustomCategory(this.value)" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
+                    <select name="category" onchange="toggleCustomField('custom-cat-wrapper', this.value)" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
                         ${PREDEFINED_CATEGORIES.map(c => `<option value="${c}" ${data && data.category === c ? 'selected' : ''}>${c}</option>`).join('')}
                         <option value="Lainnya" ${data && !PREDEFINED_CATEGORIES.includes(data.category) ? 'selected' : ''}>+ Tambah Manual</option>
                     </select>
@@ -493,6 +507,23 @@
                         <input name="customCategory" type="text" value="${data && !PREDEFINED_CATEGORIES.includes(data.category) ? data.category : ''}" class="w-full px-5 py-3 rounded-2xl border-2 border-dashed border-indigo-200 outline-none font-bold text-slate-700">
                     </div></div>`;
                 }
+
+                if (type === 'kasOut') {
+                    html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dikeluarkan Oleh</label>
+                    <select name="issuedBy" onchange="toggleCustomField('custom-issuer-wrapper', this.value)" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
+                        ${PREDEFINED_ISSUERS.map(i => `<option value="${i}" ${data && data.issuedBy === i ? 'selected' : ''}>${i}</option>`).join('')}
+                        <option value="Lainnya" ${data && !PREDEFINED_ISSUERS.includes(data.issuedBy) ? 'selected' : ''}>+ Tambah Manual</option>
+                    </select>
+                    <div id="custom-issuer-wrapper" class="${data && !PREDEFINED_ISSUERS.includes(data.issuedBy) ? '' : 'hidden'} mt-2">
+                        <input name="customIssuer" type="text" placeholder="Nama pengeluar..." value="${data && !PREDEFINED_ISSUERS.includes(data.issuedBy) ? data.issuedBy : ''}" class="w-full px-5 py-3 rounded-2xl border-2 border-dashed border-blue-200 outline-none font-bold text-slate-700">
+                    </div></div>
+                    <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</label>
+                    <select name="status" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
+                        <option value="Belum diganti" ${data && data.status === 'Belum diganti' ? 'selected' : ''}>Belum diganti</option>
+                        <option value="Sudah diganti" ${data && data.status === 'Sudah diganti' ? 'selected' : ''}>Sudah diganti</option>
+                    </select></div>`;
+                }
+
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">Item / Keperluan</label>
                     <input required name="item" type="text" value="${data ? data.item : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500 transition-colors"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</label>
@@ -500,7 +531,7 @@
                     <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-slate-200 outline-none font-black text-lg text-slate-700" onfocus="if(this.value=='0')this.value=''"></div></div>`;
             } else if (type === 'crew') {
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nama Lengkap</label>
-                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>
+                    <input required name="name" type="text" value="${data ? data.name : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Jabatan</label>
                     <select name="role" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold bg-white text-slate-700 cursor-pointer">
                         <option value="Pilot" ${data && data.role === 'Pilot' ? 'selected' : ''}>Pilot</option>
@@ -516,10 +547,10 @@
                     <input required name="transportRate" type="number" value="${data ? data.transportRate : 300000}" class="w-full bg-transparent outline-none font-black text-xl text-slate-700" onfocus="if(this.value=='0')this.value=''"></div>`;
             } else if (type === 'income') {
                 html += `<div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Keterangan Dana</label>
-                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700 focus:border-blue-500"></div>
+                    <input required name="remarks" type="text" value="${data ? data.remarks : ''}" class="w-full px-5 py-4 rounded-[1.5rem] border border-slate-200 font-bold text-slate-700"></div>
                     <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase">Nominal</label>
                     <div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
-                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 outline-none font-black text-lg" onfocus="if(this.value=='0')this.value=''"></div></div>`;
+                    <input required name="amount" type="number" value="${data ? data.amount : 0}" class="w-full pl-12 pr-5 py-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/20 font-black text-lg" onfocus="if(this.value=='0')this.value=''"></div></div>`;
             }
             
             html += `</div><div class="space-y-2 pt-2"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Remarks</label>
@@ -527,8 +558,8 @@
             container.innerHTML = html; lucide.createIcons();
         }
 
-        function toggleCustomCategory(val) {
-            const wrapper = document.getElementById('custom-cat-wrapper');
+        function toggleCustomField(wrapperId, val) {
+            const wrapper = document.getElementById(wrapperId);
             if(wrapper) { if(val === 'Lainnya') wrapper.classList.remove('hidden'); else wrapper.classList.add('hidden'); }
         }
 
@@ -537,12 +568,31 @@
             const formData = new FormData(e.target);
             const type = formData.get('formType');
             const sheetMap = { 'crew': 'Crew', 'others': 'Others', 'income': 'Income', 'kasIn': 'KasIn', 'kasOut': 'KasOut' };
-            const payload = { id: editingId || Date.now().toString(), date: formData.get('date'), remarks: formData.get('remarks'), amount: parseInt(formData.get('amount')) || 0, item: formData.get('item') || "" };
-            if (type === 'crew') { Object.assign(payload, { name: formData.get('name'), role: formData.get('role'), allowanceDays: parseInt(formData.get('allowanceDays')) || 0, transportDays: parseInt(formData.get('transportDays')) || 0, transportRate: parseInt(formData.get('transportRate')) || 0 }); if(editingId) crewEntries = crewEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else crewEntries.push(payload); }
-            else if (type === 'others') { const cat = formData.get('category'); payload.category = (cat === 'Lainnya') ? formData.get('customCategory') : cat; if(editingId) otherEntries = otherEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else otherEntries.push(payload); }
+            const payload = { 
+                id: editingId || Date.now().toString(), 
+                date: formData.get('date'), 
+                remarks: formData.get('remarks'), 
+                amount: parseInt(formData.get('amount')) || 0, 
+                item: formData.get('item') || "" 
+            };
+
+            if (type === 'crew') { 
+                Object.assign(payload, { name: formData.get('name'), role: formData.get('role'), allowanceDays: parseInt(formData.get('allowanceDays')) || 0, transportDays: parseInt(formData.get('transportDays')) || 0, transportRate: parseInt(formData.get('transportRate')) || 0 }); 
+                if(editingId) crewEntries = crewEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else crewEntries.push(payload); 
+            }
+            else if (type === 'others') { 
+                const cat = formData.get('category'); payload.category = (cat === 'Lainnya') ? formData.get('customCategory') : cat; 
+                if(editingId) otherEntries = otherEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else otherEntries.push(payload); 
+            }
             else if (type === 'income') { if(editingId) incomeEntries = incomeEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else incomeEntries.push(payload); }
             else if (type === 'kasIn') { if(editingId) kasInEntries = kasInEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else kasInEntries.push(payload); }
-            else if (type === 'kasOut') { if(editingId) kasOutEntries = kasOutEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else kasOutEntries.push(payload); }
+            else if (type === 'kasOut') { 
+                const issuer = formData.get('issuedBy');
+                payload.issuedBy = (issuer === 'Lainnya') ? formData.get('customIssuer') : issuer;
+                payload.status = formData.get('status') || 'Belum diganti';
+                if(editingId) kasOutEntries = kasOutEntries.map(e => e.id.toString() === editingId.toString() ? payload : e); else kasOutEntries.push(payload); 
+            }
+
             await syncToSheet(sheetMap[type], editingId ? 'update' : 'add', payload);
             closeModal(); render();
         }
