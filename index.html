@@ -27,7 +27,9 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .modal-animate-in { animation: zoomIn 0.15s ease-out; }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.98) translateY(5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
+        
+        /* Full screen loader hanya untuk load awal */
+        #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body class="text-slate-900 pb-12">
@@ -170,7 +172,7 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] hidden bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2">
-        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> <span id="toast-msg">Pesan</span>
+        <i data-lucide="loader" class="w-4 h-4 animate-spin text-blue-400" id="toast-icon"></i> <span id="toast-msg">Pesan</span>
     </div>
 
     <script>
@@ -208,42 +210,47 @@
             } catch (e) { return dateStr; }
         }
 
-        function showToast(msg) {
+        function showToast(msg, icon = 'loader') {
             const el = document.getElementById('toast');
+            const iconEl = document.getElementById('toast-icon');
             document.getElementById('toast-msg').innerText = msg;
+            
+            // Set icon
+            iconEl.setAttribute('data-lucide', icon);
+            if(icon === 'loader') iconEl.classList.add('animate-spin');
+            else iconEl.classList.remove('animate-spin');
+            
             el.classList.remove('hidden');
             lucide.createIcons();
-            setTimeout(() => el.classList.add('hidden'), 3000);
+            if(icon !== 'loader') setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('hidden');
         }
 
         // --- API Sync ---
         async function fetchAllData() {
-            if (!SHEET_URL) { showToast("URL Sheet belum diisi."); return; }
+            if (!SHEET_URL) return;
             document.getElementById('loader').style.display = 'flex';
             try {
                 const response = await fetch(SHEET_URL);
                 if (!response.ok) throw new Error("Network response was not ok");
                 const data = await response.json();
-                
                 crewEntries = data.Crew || [];
                 otherEntries = data.Others || [];
                 incomeEntries = data.Income || [];
                 kasInEntries = data.KasIn || [];
                 kasOutEntries = data.KasOut || [];
-                
                 render();
-                showToast("Data Tersinkron");
-            } catch (error) { 
-                console.error("Fetch Error:", error);
-                showToast("Gagal mengambil data."); 
-            } finally { 
-                document.getElementById('loader').style.display = 'none'; 
-            }
+            } catch (error) { showToast("Gagal mengambil data.", "x-circle"); } 
+            finally { document.getElementById('loader').style.display = 'none'; }
         }
 
+        // FUNGSI SINKRONISASI LATAR BELAKANG (TANPA BLOCKING UI)
         async function syncToSheet(sheetName, action, payload) {
             if (!SHEET_URL) return;
-            document.getElementById('loader').style.display = 'flex';
+            showToast("Menyimpan ke Cloud...");
             try {
                 await fetch(SHEET_URL, {
                     method: "POST", 
@@ -251,12 +258,9 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ sheet: sheetName, action: action, data: payload })
                 });
-                showToast("Berhasil!");
+                showToast("Tersimpan!", "check-circle");
             } catch (error) { 
-                console.error("Sync Error:", error);
-                showToast("Gagal Update Sheet."); 
-            } finally { 
-                document.getElementById('loader').style.display = 'none'; 
+                showToast("Gagal sinkron cloud.", "x-circle"); 
             }
         }
 
@@ -403,7 +407,7 @@
 
         // --- Export Functions ---
         function exportOthersExcel() {
-            if (otherEntries.length === 0) { showToast("Data Others kosong."); return; }
+            if (otherEntries.length === 0) { showToast("Data Others kosong.", "x-circle"); return; }
             let csv = "data:text/csv;charset=utf-8,";
             csv += "Tanggal,Kategori,Item,Nominal,Remarks\r\n";
             otherEntries.forEach(item => { csv += `"${item.date}","${item.category}","${item.item}",${item.amount},"${item.remarks || ''}"\r\n`; });
@@ -437,8 +441,8 @@
             if (idx === -1) return;
             const updated = { ...kasOutEntries[idx], status: 'Sudah diganti' };
             kasOutEntries[idx] = updated;
-            await syncToSheet("KasOut", "update", updated);
-            render();
+            render(); // Update UI langsung
+            syncToSheet("KasOut", "update", updated); // Sinkron background
         }
 
         async function transferToKas(id) {
@@ -446,9 +450,8 @@
             if(!item) return;
             const newEntry = { id: Date.now().toString(), date: item.date, item: `(Trans) ${item.item}`, amount: item.amount, remarks: `Kat: ${item.category}`, status: 'Belum diganti' };
             kasInEntries.push(newEntry);
-            await syncToSheet("KasIn", "add", newEntry);
-            showToast("Berhasil ditransfer ke Dana Masuk Kas");
-            render();
+            render(); // Update UI langsung
+            syncToSheet("KasIn", "add", newEntry); // Sinkron background
         }
 
         function openModal() {
@@ -482,7 +485,6 @@
             const container = document.getElementById('form-fields');
             let html = `<input type="hidden" name="formType" value="${type}">`;
             
-            // LOGIKA FIX TANGGAL: Ambil komponen tanggal lokal (Y-M-D) tanpa konversi zona waktu ISO
             let fDate = "";
             if (data && data.date) {
                 try {
@@ -495,7 +497,7 @@
                     }
                 } catch(e) { console.error("Error parsing date", e); }
             }
-            if (!fDate) fDate = new Date().toLocaleDateString('en-CA'); // Default today YYYY-MM-DD
+            if (!fDate) fDate = new Date().toLocaleDateString('en-CA');
             
             html += `<div class="space-y-4">
                 <div class="space-y-1.5"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal *</label>
@@ -558,6 +560,7 @@
             const smap = { 'crew': 'Crew', 'others': 'Others', 'income': 'Income', 'kasIn': 'KasIn', 'kasOut': 'KasOut' };
             const pl = { id: editingId || Date.now().toString(), date: fd.get('date'), remarks: fd.get('remarks'), amount: parseInt(fd.get('amount')) || 0, item: fd.get('item') || "" };
             
+            // --- OPTIMISTIC UI UPDATE: PERBARUI LOKAL DULU ---
             if (type === 'crew') { 
                 Object.assign(pl, { name: fd.get('name'), role: fd.get('role'), allowanceDays: parseInt(fd.get('allowanceDays')) || 0, transportDays: parseInt(fd.get('transportDays')) || 0, transportRate: parseInt(fd.get('transportRate')) || 0 }); 
                 if(editingId) crewEntries = crewEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else crewEntries.push(pl); 
@@ -571,20 +574,27 @@
             } else if (type === 'income') { if(editingId) incomeEntries = incomeEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else incomeEntries.push(pl); }
             else if (type === 'kasIn') { if(editingId) kasInEntries = kasInEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else kasInEntries.push(pl); }
             
-            await syncToSheet(smap[type], editingId ? 'update' : 'add', pl);
-            closeModal(); render();
+            // Render UI segera & Tutup Modal
+            render();
+            closeModal();
+            
+            // Jalankan Sinkronisasi Latar Belakang
+            syncToSheet(smap[type], editingId ? 'update' : 'add', pl);
         }
 
         async function deleteEntry(id, type) {
-            if (!confirm("Hapus data?")) return;
+            if (!confirm("Hapus data ini?")) return;
             const smap = { 'crew': 'Crew', 'others': 'Others', 'income': 'Income', 'kasIn': 'KasIn', 'kasOut': 'KasOut' };
+            
+            // --- OPTIMISTIC UI UPDATE: HAPUS LOKAL DULU ---
             if (type === 'crew') crewEntries = crewEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'others') otherEntries = otherEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'income') incomeEntries = incomeEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'kasIn') kasInEntries = kasInEntries.filter(e => e.id.toString() !== id.toString());
             else kasOutEntries = kasOutEntries.filter(e => e.id.toString() !== id.toString());
-            await syncToSheet(smap[type], 'delete', { id: id });
-            render();
+            
+            render(); // Render ulang instan
+            syncToSheet(smap[type], 'delete', { id: id }); // Sinkron latar belakang
         }
 
         function closeDrilldown() { selectedSummaryCat = null; render(); }
