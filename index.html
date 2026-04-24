@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinAir Pro - Manajemen Keuangan</title>
+    <title>Sky Ops-FinAir Pro - Financial Management</title>
     
     <!-- Konfigurasi Ikon Aplikasi -->
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FinAir Pro">
+    <meta name="apple-mobile-web-app-title" content="Sky Ops-FinAir Pro">
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cpath d='M3 9h18'%3E%3C/path%3E%3Cpath d='M9 21V9'%3E%3C/path%3E%3Cpath d='M12 12l3 3 5-5'%3E%3C/path%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'%3E%3Crect width='24' height='24' rx='5' fill='%232563eb'/%3E%3Cpath d='M6 6h12v12H6z' fill='none'/%3E%3Cpath d='M12 4L3 9v11h18V9l-9-5zm0 2.18L19 10v8H5v-8l7-3.82zM12 12a2 2 0 100-4 2 2 0 000 4z' fill='white'/%3E%3C/svg%3E">
@@ -27,8 +27,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .modal-animate-in { animation: zoomIn 0.15s ease-out; }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.98) translateY(5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        
-        /* Full screen loader hanya untuk load awal */
         #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
@@ -48,8 +46,8 @@
                         <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
                     </div>
                     <div class="hidden md:block">
-                        <span class="text-xl font-extrabold tracking-tight text-slate-800 block leading-none">FinAir Pro</span>
-                        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Aviation Management</span>
+                        <span class="text-xl font-extrabold tracking-tight text-slate-800 block leading-none">Sky Ops-FinAir Pro</span>
+                        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Financial Management</span>
                     </div>
                 </div>
                 
@@ -214,19 +212,12 @@
             const el = document.getElementById('toast');
             const iconEl = document.getElementById('toast-icon');
             document.getElementById('toast-msg').innerText = msg;
-            
-            // Set icon
             iconEl.setAttribute('data-lucide', icon);
             if(icon === 'loader') iconEl.classList.add('animate-spin');
             else iconEl.classList.remove('animate-spin');
-            
             el.classList.remove('hidden');
             lucide.createIcons();
             if(icon !== 'loader') setTimeout(() => el.classList.add('hidden'), 3000);
-        }
-
-        function hideToast() {
-            document.getElementById('toast').classList.add('hidden');
         }
 
         // --- API Sync ---
@@ -247,7 +238,6 @@
             finally { document.getElementById('loader').style.display = 'none'; }
         }
 
-        // FUNGSI SINKRONISASI LATAR BELAKANG (TANPA BLOCKING UI)
         async function syncToSheet(sheetName, action, payload) {
             if (!SHEET_URL) return;
             showToast("Menyimpan ke Cloud...");
@@ -277,9 +267,9 @@
             incomeEntries.forEach(i => incomeTotal += (parseInt(i.amount) || 0));
             const balance = incomeTotal - (crewTotal + otherTotal);
 
+            document.getElementById('stat-income-total').innerText = formatIDR(incomeTotal);
             document.getElementById('stat-crew-total').innerText = formatIDR(crewTotal);
             document.getElementById('stat-others-total').innerText = formatIDR(otherTotal);
-            document.getElementById('stat-income-total').innerText = formatIDR(incomeTotal);
             const balanceEl = document.getElementById('stat-balance');
             balanceEl.innerText = formatIDR(balance);
             if (balance < 0) balanceEl.classList.add('text-red-400'); else balanceEl.classList.remove('text-red-400');
@@ -335,9 +325,7 @@
             const header = document.getElementById('content-header');
             const head = document.getElementById('table-head');
             const body = document.getElementById('table-body');
-            
             const getSortedCopy = (arr) => [...arr].sort((a, b) => new Date(b.date) - new Date(a.date));
-            
             calculateTotals();
 
             header.innerHTML = `
@@ -351,7 +339,7 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 transition-all flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT OTHERS</button>` : ''}
+                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT OTHERS</button>` : ''}
                     ${activeTab === 'summary' && !selectedSummaryCat ? `<button onclick="exportAllSummaryExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT SUMMARY</button>` : ''}
                     ${selectedSummaryCat ? `<button onclick="exportCategoryExcel()" class="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2 hover:bg-blue-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT EXCEL</button>` : ''}
                 </div>
@@ -360,11 +348,11 @@
             if (selectedSummaryCat) {
                 if (selectedSummaryCat.type === 'crew') {
                     head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                    body.innerHTML = getSortedCopy(crewEntries).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-center font-bold">${formatIDR(((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE))+((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0)))}</td><td class="px-8 py-5 text-right"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button></td></tr>`).join('');
+                    body.innerHTML = getSortedCopy(crewEntries).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-center font-bold">${formatIDR(((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE))+((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
                 } else {
                     const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
-                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-right">Nominal</th></tr>`;
-                    body.innerHTML = getSortedCopy(filtered).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}</td><td class="px-8 py-5 text-right font-black">${formatIDR(item.amount)}</td></tr>`).join('');
+                    head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
+                    body.innerHTML = getSortedCopy(filtered).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}</td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2"><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
                 }
             } else if (activeTab === 'crew') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama Crew</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
@@ -405,44 +393,14 @@
             lucide.createIcons();
         }
 
-        // --- Export Functions ---
-        function exportOthersExcel() {
-            if (otherEntries.length === 0) { showToast("Data Others kosong.", "x-circle"); return; }
-            let csv = "data:text/csv;charset=utf-8,";
-            csv += "Tanggal,Kategori,Item,Nominal,Remarks\r\n";
-            otherEntries.forEach(item => { csv += `"${item.date}","${item.category}","${item.item}",${item.amount},"${item.remarks || ''}"\r\n`; });
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Laporan_Others_FinAir.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
-        function exportAllSummaryExcel() {
-            const data = getSummaryData();
-            let csv = "data:text/csv;charset=utf-8,";
-            csv += "Kategori,Jumlah Item,Tipe,Total Akumulasi\r\n";
-            data.forEach(s => csv += `"${s.category}",${s.count},"${s.type}",${s.total}\r\n`);
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Summary_FinAir.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
-        function exportCategoryExcel() {
-            if (!selectedSummaryCat) return;
-            let csv = "data:text/csv;charset=utf-8,";
-            const headers = selectedSummaryCat.type === 'crew' ? ["Tanggal", "Nama", "Role", "Allowance Days", "Transport Days", "Remarks", "Total"] : ["Tanggal", "Kategori", "Item", "Remarks", "Nominal"];
-            csv += headers.join(",") + "\r\n";
-            const items = selectedSummaryCat.type === 'crew' ? crewEntries : otherEntries.filter(e => e.category === selectedSummaryCat.category);
-            items.forEach(item => {
-                let row = selectedSummaryCat.type === 'crew' ? [`"${item.date}"`, `"${item.name}"`, `"${item.role}"`, item.allowanceDays, item.transportDays, `"${item.remarks || ''}"`, ((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE))+((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0))] : [`"${item.date}"`, `"${item.category}"`, `"${item.item}"`, `"${item.remarks || ''}"`, item.amount];
-                csv += row.join(",") + "\r\n";
-            });
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `Detail_${selectedSummaryCat.category}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
         // --- Business Actions ---
         async function updateKasStatus(id) {
             const idx = kasOutEntries.findIndex(e => e.id.toString() === id.toString());
             if (idx === -1) return;
             const updated = { ...kasOutEntries[idx], status: 'Sudah diganti' };
             kasOutEntries[idx] = updated;
-            render(); // Update UI langsung
-            syncToSheet("KasOut", "update", updated); // Sinkron background
+            render();
+            syncToSheet("KasOut", "update", updated);
         }
 
         async function transferToKas(id) {
@@ -450,13 +408,13 @@
             if(!item) return;
             const newEntry = { id: Date.now().toString(), date: item.date, item: `(Trans) ${item.item}`, amount: item.amount, remarks: `Kat: ${item.category}`, status: 'Belum diganti' };
             kasInEntries.push(newEntry);
-            render(); // Update UI langsung
-            syncToSheet("KasIn", "add", newEntry); // Sinkron background
+            render();
+            syncToSheet("KasIn", "add", newEntry);
         }
 
         function openModal() {
             editingId = null;
-            let type = (activeTab === 'summary') ? 'crew' : (activeTab === 'kas' ? (activeKasView === 'masuk' ? 'kasIn' : 'kasOut') : activeTab);
+            let type = (activeTab === 'summary') ? (selectedSummaryCat?.type === 'crew' ? 'crew' : 'others') : (activeTab === 'kas' ? (activeKasView === 'masuk' ? 'kasIn' : 'kasOut') : activeTab);
             injectForm(type);
             document.getElementById('modal-container').classList.remove('hidden');
         }
@@ -484,7 +442,6 @@
         function injectForm(type, data = null) {
             const container = document.getElementById('form-fields');
             let html = `<input type="hidden" name="formType" value="${type}">`;
-            
             let fDate = "";
             if (data && data.date) {
                 try {
@@ -560,7 +517,6 @@
             const smap = { 'crew': 'Crew', 'others': 'Others', 'income': 'Income', 'kasIn': 'KasIn', 'kasOut': 'KasOut' };
             const pl = { id: editingId || Date.now().toString(), date: fd.get('date'), remarks: fd.get('remarks'), amount: parseInt(fd.get('amount')) || 0, item: fd.get('item') || "" };
             
-            // --- OPTIMISTIC UI UPDATE: PERBARUI LOKAL DULU ---
             if (type === 'crew') { 
                 Object.assign(pl, { name: fd.get('name'), role: fd.get('role'), allowanceDays: parseInt(fd.get('allowanceDays')) || 0, transportDays: parseInt(fd.get('transportDays')) || 0, transportRate: parseInt(fd.get('transportRate')) || 0 }); 
                 if(editingId) crewEntries = crewEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else crewEntries.push(pl); 
@@ -574,27 +530,21 @@
             } else if (type === 'income') { if(editingId) incomeEntries = incomeEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else incomeEntries.push(pl); }
             else if (type === 'kasIn') { if(editingId) kasInEntries = kasInEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else kasInEntries.push(pl); }
             
-            // Render UI segera & Tutup Modal
             render();
             closeModal();
-            
-            // Jalankan Sinkronisasi Latar Belakang
             syncToSheet(smap[type], editingId ? 'update' : 'add', pl);
         }
 
         async function deleteEntry(id, type) {
             if (!confirm("Hapus data ini?")) return;
             const smap = { 'crew': 'Crew', 'others': 'Others', 'income': 'Income', 'kasIn': 'KasIn', 'kasOut': 'KasOut' };
-            
-            // --- OPTIMISTIC UI UPDATE: HAPUS LOKAL DULU ---
             if (type === 'crew') crewEntries = crewEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'others') otherEntries = otherEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'income') incomeEntries = incomeEntries.filter(e => e.id.toString() !== id.toString());
             else if (type === 'kasIn') kasInEntries = kasInEntries.filter(e => e.id.toString() !== id.toString());
             else kasOutEntries = kasOutEntries.filter(e => e.id.toString() !== id.toString());
-            
-            render(); // Render ulang instan
-            syncToSheet(smap[type], 'delete', { id: id }); // Sinkron latar belakang
+            render();
+            syncToSheet(smap[type], 'delete', { id: id });
         }
 
         function closeDrilldown() { selectedSummaryCat = null; render(); }
