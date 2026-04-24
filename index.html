@@ -300,6 +300,57 @@
             ].sort((a, b) => b.total - a.total);
         }
 
+        // --- EXPORT TO EXCEL ROBOTIC LOGIC ---
+        function triggerDownload(csvContent, fileName) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportOthersExcel() {
+            if (otherEntries.length === 0) { showToast("Data Others kosong.", "x-circle"); return; }
+            let csv = "Tanggal,Kategori,Item,Nominal,Remarks\n";
+            otherEntries.forEach(item => {
+                csv += `"${item.date}","${item.category}","${item.item}",${item.amount},"${(item.remarks || '').replace(/\n/g, ' ')}"\n`;
+            });
+            triggerDownload(csv, "Laporan_Others_SkyOps.csv");
+        }
+
+        function exportAllSummaryExcel() {
+            const data = getSummaryData();
+            if (data.length === 0) { showToast("Data Summary kosong.", "x-circle"); return; }
+            let csv = "Kategori,Jumlah Item,Tipe,Total Akumulasi\n";
+            data.forEach(s => {
+                csv += `"${s.category}",${s.count},"${s.type}",${s.total}\n`;
+            });
+            triggerDownload(csv, "Summary_Laporan_SkyOps.csv");
+        }
+
+        function exportCategoryExcel() {
+            if (!selectedSummaryCat) return;
+            let csv = "";
+            if (selectedSummaryCat.type === 'crew') {
+                csv = "Tanggal,Nama,Role,Allowance Days,Transport Days,Remarks,Total\n";
+                crewEntries.forEach(item => {
+                    const total = ((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE)) + ((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0));
+                    csv += `"${item.date}","${item.name}","${item.role}",${item.allowanceDays},${item.transportDays},"${(item.remarks || '').replace(/\n/g, ' ')}",${total}\n`;
+                });
+            } else {
+                csv = "Tanggal,Kategori,Item,Remarks,Nominal\n";
+                const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
+                filtered.forEach(item => {
+                    csv += `"${item.date}","${item.category}","${item.item}","${(item.remarks || '').replace(/\n/g, ' ')}",${item.amount}\n`;
+                });
+            }
+            triggerDownload(csv, `Detail_${selectedSummaryCat.category.replace(/ /g, '_')}.csv`);
+        }
+
         function switchTab(tab) {
             activeTab = tab; selectedSummaryCat = null;
             if(tab === 'kas') { document.getElementById('main-stats').classList.add('hidden'); document.getElementById('kas-stats').classList.remove('hidden'); document.getElementById('kas-sub-tabs').classList.remove('hidden'); }
@@ -339,7 +390,7 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT OTHERS</button>` : ''}
+                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100 transition-all flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT OTHERS</button>` : ''}
                     ${activeTab === 'summary' && !selectedSummaryCat ? `<button onclick="exportAllSummaryExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT SUMMARY</button>` : ''}
                     ${selectedSummaryCat ? `<button onclick="exportCategoryExcel()" class="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2 hover:bg-blue-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT EXCEL</button>` : ''}
                 </div>
@@ -452,7 +503,7 @@
                         const day = String(d.getDate()).padStart(2, '0');
                         fDate = `${year}-${month}-${day}`;
                     }
-                } catch(e) { console.error("Error parsing date", e); }
+                } catch(e) {}
             }
             if (!fDate) fDate = new Date().toLocaleDateString('en-CA');
             
