@@ -27,8 +27,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .modal-animate-in { animation: zoomIn 0.15s ease-out; }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.98) translateY(5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        
-        /* Full screen loader hanya untuk startup pertama */
         #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
@@ -64,8 +62,7 @@
                 </div>
 
                 <div class="shrink-0 flex gap-2">
-                    <!-- Tombol Sync Background -->
-                    <button onclick="fetchAllData(false)" id="refreshBtn" class="p-2.5 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all" title="Sinkronisasi Latar Belakang">
+                    <button onclick="fetchAllData(false)" id="refreshBtn" class="p-2.5 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all">
                         <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
                     </button>
                     <button onclick="openModal()" class="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 md:px-5 py-2.5 rounded-2xl transition-all shadow-lg active:scale-95 text-xs font-bold">
@@ -177,9 +174,8 @@
     </div>
 
     <script>
-        // --- KONFIGURASI GOOGLE SHEET URL ---
+        // --- CONFIG ---
         const SHEET_URL = "https://script.google.com/macros/s/AKfycbxOralZ3rmUfigIMJHM49AKmpWOwMPn8AdTVvEwVkyXxiEPJuPy0FrELR7wbbSgajy47A/exec"; 
-
         const PILOT_RATE = 600000;
         const ENGINEER_RATE = 480000;
         
@@ -225,49 +221,82 @@
             if(icon !== 'loader') setTimeout(() => el.classList.add('hidden'), 3000);
         }
 
-        // --- API Sync ---
-        // Parameter isInitial menentukan apakah menggunakan Loader Full-Screen atau Toast Background
-        async function fetchAllData(isInitial = true) {
-            if (!SHEET_URL) {
-                if(!isInitial) showToast("URL Sheet belum diisi.", "x-circle");
-                return;
-            }
-
-            if (isInitial) {
-                document.getElementById('loader').style.display = 'flex';
+        // --- Navigation ---
+        function switchTab(tab) {
+            activeTab = tab; 
+            selectedSummaryCat = null;
+            const mStats = document.getElementById('main-stats');
+            const kStats = document.getElementById('kas-stats');
+            const kTabs = document.getElementById('kas-sub-tabs');
+            
+            if(tab === 'kas') {
+                mStats.classList.add('hidden');
+                kStats.classList.remove('hidden');
+                kTabs.classList.remove('hidden');
             } else {
-                showToast("Menarik data terbaru dari Cloud...");
-                document.getElementById('refreshIcon').classList.add('animate-spin');
+                mStats.classList.remove('hidden');
+                kStats.classList.add('hidden');
+                kTabs.classList.add('hidden');
+            }
+            
+            ['crew', 'others', 'income', 'kas', 'summary'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                    btn.classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                    btn.classList.add('text-slate-500');
+                }
+            });
+            render();
+        }
+
+        function switchKasView(view) {
+            activeKasView = view;
+            const vm = document.getElementById('kas-view-masuk');
+            const vl = document.getElementById('kas-view-luar');
+            if(view === 'masuk') {
+                vm.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-blue-600 text-white shadow-sm";
+                vl.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-white text-slate-500 border border-slate-200";
+            } else {
+                vl.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-red-600 text-white shadow-sm";
+                vm.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-white text-slate-500 border border-slate-200";
+            }
+            render();
+        }
+
+        // --- API Sync ---
+        async function fetchAllData(isInitial = true) {
+            if (!SHEET_URL) return;
+            if (isInitial) document.getElementById('loader').style.display = 'flex';
+            else {
+                showToast("Sinkronisasi data...");
+                document.getElementById('refreshIcon')?.classList.add('animate-spin');
             }
 
             try {
                 const response = await fetch(SHEET_URL);
-                if (!response.ok) throw new Error("Gagal terhubung");
                 const data = await response.json();
-                
                 crewEntries = data.Crew || [];
                 otherEntries = data.Others || [];
                 incomeEntries = data.Income || [];
                 kasInEntries = data.KasIn || [];
                 kasOutEntries = data.KasOut || [];
-                
                 updateDynamicCategories();
                 render();
-
-                if (!isInitial) showToast("Data berhasil diperbarui!", "check-circle");
+                if(!isInitial) showToast("Sinkron selesai!", "check-circle");
             } catch (error) { 
-                console.error("Fetch Error:", error);
-                showToast("Sinkronisasi Gagal.", "x-circle"); 
+                showToast("Gagal memuat data.", "x-circle");
             } finally { 
-                if (isInitial) document.getElementById('loader').style.display = 'none';
-                document.getElementById('refreshIcon').classList.remove('animate-spin');
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('refreshIcon')?.classList.remove('animate-spin');
             }
         }
 
         function updateDynamicCategories() {
-            const categoriesFromData = otherEntries.map(e => e.category);
-            const combined = [...BASE_CATEGORIES, ...categoriesFromData];
-            currentCategories = [...new Set(combined)].filter(c => c && c.trim() !== "").sort();
+            const cats = otherEntries.map(e => e.category);
+            currentCategories = [...new Set([...BASE_CATEGORIES, ...cats])].filter(c => c && c.trim() !== "").sort();
         }
 
         async function syncToSheet(sheetName, action, payload) {
@@ -275,15 +304,11 @@
             showToast("Menyimpan perubahan...", "loader");
             try {
                 await fetch(SHEET_URL, {
-                    method: "POST", 
-                    mode: "no-cors", 
-                    headers: { "Content-Type": "application/json" },
+                    method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ sheet: sheetName, action: action, data: payload })
                 });
-                showToast("Tersimpan di Cloud!", "check-circle");
-            } catch (error) { 
-                showToast("Gagal sinkron cloud.", "x-circle"); 
-            }
+                showToast("Tersimpan!", "check-circle");
+            } catch (error) { showToast("Gagal menyimpan.", "x-circle"); }
         }
 
         // --- Calculations ---
@@ -332,75 +357,48 @@
             ].sort((a, b) => b.total - a.total);
         }
 
-        // --- Export & Download ---
+        // --- Export ---
         function triggerDownload(csvContent, fileName) {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
         function exportOthersExcel() {
-            if (otherEntries.length === 0) { showToast("Data Others kosong.", "x-circle"); return; }
+            if (otherEntries.length === 0) return;
             let csv = "Tanggal,Kategori,Item,Nominal,Remarks\n";
             otherEntries.forEach(item => { csv += `"${item.date}","${item.category}","${item.item}",${item.amount},"${(item.remarks || '').replace(/\n/g, ' ')}"\n`; });
-            triggerDownload(csv, "Laporan_Others_SkyOps.csv");
+            triggerDownload(csv, "Laporan_Others.csv");
         }
 
         function exportAllSummaryExcel() {
             const data = getSummaryData();
-            if (data.length === 0) { showToast("Data Summary kosong.", "x-circle"); return; }
-            let csv = "Kategori,Jumlah Item,Tipe,Total Akumulasi\n";
-            data.forEach(s => { csv += `"${s.category}",${s.count},"${s.type}",${s.total}\n`; });
-            triggerDownload(csv, "Summary_Laporan_SkyOps.csv");
+            let csv = "Kategori,Jumlah Item,Total Akumulasi\n";
+            data.forEach(s => { csv += `"${s.category}",${s.count},${s.total}\n`; });
+            triggerDownload(csv, "Summary_Laporan.csv");
         }
 
         function exportCategoryExcel() {
             if (!selectedSummaryCat) return;
-            let csv = "";
-            if (selectedSummaryCat.type === 'crew') {
-                csv = "Tanggal,Nama,Role,Allowance Days,Transport Days,Remarks,Total\n";
-                crewEntries.forEach(item => {
+            let csv = selectedSummaryCat.type === 'crew' ? "Tanggal,Nama,Role,Total\n" : "Tanggal,Kategori,Item,Remarks,Nominal\n";
+            const items = selectedSummaryCat.type === 'crew' ? crewEntries : otherEntries.filter(e => e.category === selectedSummaryCat.category);
+            items.forEach(item => {
+                if (selectedSummaryCat.type === 'crew') {
                     const total = ((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE)) + ((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0));
-                    csv += `"${item.date}","${item.name}","${item.role}",${item.allowanceDays},${item.transportDays},"${(item.remarks || '').replace(/\n/g, ' ')}",${total}\n`;
-                });
-            } else {
-                csv = "Tanggal,Kategori,Item,Remarks,Nominal\n";
-                const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
-                filtered.forEach(item => {
+                    csv += `"${item.date}","${item.name}","${item.role}",${total}\n`;
+                } else {
                     csv += `"${item.date}","${item.category}","${item.item}","${(item.remarks || '').replace(/\n/g, ' ')}",${item.amount}\n`;
-                });
-            }
-            triggerDownload(csv, `Detail_${selectedSummaryCat.category.replace(/ /g, '_')}.csv`);
-        }
-
-        // --- Navigation ---
-        function switchTab(tab) {
-            activeTab = tab; selectedSummaryCat = null;
-            if(tab === 'kas') { document.getElementById('main-stats').classList.add('hidden'); document.getElementById('kas-stats').classList.remove('hidden'); document.getElementById('kas-sub-tabs').classList.remove('hidden'); }
-            else { document.getElementById('main-stats').classList.remove('hidden'); document.getElementById('kas-stats').classList.add('hidden'); document.getElementById('kas-sub-tabs').classList.add('hidden'); }
-            ['crew', 'others', 'income', 'kas', 'summary'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (t === tab) { btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm'); btn.classList.remove('text-slate-500'); }
-                else { btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm'); btn.classList.add('text-slate-500'); }
+                }
             });
-            render();
+            triggerDownload(csv, `Detail_${selectedSummaryCat.category}.csv`);
         }
 
-        function switchKasView(view) {
-            activeKasView = view;
-            const vm = document.getElementById('kas-view-masuk');
-            const vl = document.getElementById('kas-view-luar');
-            if(view === 'masuk') { vm.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-blue-600 text-white shadow-sm"; vl.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-white text-slate-500 border border-slate-200"; }
-            else { vl.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-red-600 text-white shadow-sm"; vm.className = "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase bg-white text-slate-500 border border-slate-200"; }
-            render();
-        }
-
+        // --- Render UI ---
         function render() {
             const header = document.getElementById('content-header');
             const head = document.getElementById('table-head');
@@ -419,20 +417,24 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 transition-all flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT OTHERS</button>` : ''}
-                    ${activeTab === 'summary' && !selectedSummaryCat ? `<button onclick="exportAllSummaryExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT SUMMARY</button>` : ''}
-                    ${selectedSummaryCat ? `<button onclick="exportCategoryExcel()" class="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2 hover:bg-blue-100"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT EXCEL</button>` : ''}
+                    ${activeTab === 'others' ? `<button onclick="exportOthersExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT</button>` : ''}
+                    ${activeTab === 'summary' && !selectedSummaryCat ? `<button onclick="exportAllSummaryExcel()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT SUMMARY</button>` : ''}
+                    ${selectedSummaryCat ? `<button onclick="exportCategoryExcel()" class="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 hover:bg-blue-100 transition-all flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXPORT DETAIL</button>` : ''}
                 </div>
             `;
 
             if (selectedSummaryCat) {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama/Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
-                if (selectedSummaryCat.type === 'crew') {
-                    body.innerHTML = getSortedCopy(crewEntries).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.name}</td><td class="px-8 py-5 text-center font-bold">${formatIDR(((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE))+((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0)))}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2"><button onclick="editEntry('${item.id}', 'crew')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'crew')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
-                } else {
-                    const filtered = otherEntries.filter(e => e.category === selectedSummaryCat.category);
-                    body.innerHTML = getSortedCopy(filtered).map(item => `<tr class="hover:bg-slate-50"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold text-slate-800">${item.item}</td><td class="px-8 py-5 text-center font-black">${formatIDR(item.amount)}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2"><button onclick="editEntry('${item.id}', 'others')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', 'others')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td></tr>`).join('');
-                }
+                const filtered = selectedSummaryCat.type === 'crew' ? crewEntries : otherEntries.filter(e => e.category === selectedSummaryCat.category);
+                body.innerHTML = getSortedCopy(filtered).map(item => {
+                    const total = selectedSummaryCat.type === 'crew' ? (((parseInt(item.allowanceDays)||0)*(item.role==='Pilot'?PILOT_RATE:ENGINEER_RATE))+((parseInt(item.transportDays)||0)*(parseInt(item.transportRate)||0))) : item.amount;
+                    return `<tr class="hover:bg-slate-50">
+                        <td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td>
+                        <td class="px-8 py-5 font-bold">${selectedSummaryCat.type === 'crew' ? item.name : item.item}</td>
+                        <td class="px-8 py-5 text-center font-black">${formatIDR(total)}</td>
+                        <td class="px-8 py-5 text-right"><div class="flex justify-end gap-2"><button onclick="editEntry('${item.id}', '${selectedSummaryCat.type === 'crew' ? 'crew' : 'others'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${selectedSummaryCat.type === 'crew' ? 'crew' : 'others'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>
+                    </tr>`;
+                }).join('');
             } else if (activeTab === 'crew') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Nama Crew</th><th class="px-8 py-5 text-center">Total</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
                 body.innerHTML = getSortedCopy(crewEntries).map(item => {
@@ -451,17 +453,18 @@
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black"><th class="px-8 py-5">Tanggal</th><th class="px-8 py-5">Item</th><th class="px-8 py-5 text-center">Nominal</th><th class="px-8 py-5">Status</th><th class="px-8 py-5 text-right">Aksi</th></tr>`;
                 body.innerHTML = getSortedCopy(list).map(item => {
                     const isBelum = item.status !== 'Sudah diganti';
-                    const statusSection = activeKasView === 'luar' ? `<td class="px-8 py-5"><span class="font-bold uppercase text-[10px] ${!isBelum ? 'text-emerald-600' : 'text-red-600'}">${item.status || 'Belum diganti'}</span></td>` : `<td class="px-8 py-5">-</td>`;
-                    return `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold">${item.item}</td><td class="px-8 py-5 text-center font-black ${accent}">${formatIDR(item.amount)}</td>${statusSection}<td class="px-8 py-5 text-right"><div class="flex justify-end gap-2">${activeKasView==='luar'&&isBelum?`<button onclick="updateKasStatus('${item.id}')" class="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black">SUDAH DIGANTI</button>`:''}<div class="opacity-0 group-hover:opacity-100 flex gap-2"><button onclick="editEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div></td></tr>`;
+                    const issuerInfo = activeKasView === 'luar' ? `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1">Oleh: ${item.issuedBy || '-'}</div>` : '';
+                    const statusInfo = activeKasView === 'luar' ? `<span class="font-bold uppercase text-[10px] ${!isBelum ? 'text-emerald-600' : 'text-red-600'}">${item.status || 'Belum diganti'}</span>` : '-';
+                    return `<tr class="hover:bg-slate-50 group"><td class="px-8 py-5 font-bold">${formatDateDisplay(item.date)}</td><td class="px-8 py-5 font-bold"><div>${item.item}</div>${issuerInfo}</td><td class="px-8 py-5 text-center font-black ${accent}">${formatIDR(item.amount)}</td><td class="px-8 py-5">${statusInfo}</td><td class="px-8 py-5 text-right"><div class="flex justify-end gap-2">${activeKasView==='luar'&&isBelum?`<button onclick="updateKasStatus('${item.id}')" class="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black hover:bg-emerald-600 hover:text-white transition-all">SUDAH DIGANTI</button>`:''}<div class="opacity-0 group-hover:opacity-100 flex gap-2"><button onclick="editEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${item.id}', '${activeKasView==='masuk'?'kasIn':'kasOut'}')" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div></td></tr>`;
                 }).join('');
             } else if (activeTab === 'summary') {
                 head.innerHTML = `<tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th class="px-8 py-5">Kategori</th><th class="px-8 py-5 text-right">Total Akumulasi</th></tr>`;
-                body.innerHTML = getSummaryData().filter(s => s.total > 0).map(sum => `<tr key="${sum.category}" onclick='selectedSummaryCat = ${JSON.stringify(sum)}; render();' class="hover:bg-slate-50 cursor-pointer"><td class="px-8 py-6 font-black text-slate-800">${sum.category}</td><td class="px-8 py-6 text-right font-black text-lg">${formatIDR(sum.total)} <i data-lucide="chevron-right" class="w-4 h-4 inline text-slate-300"></i></td></tr>`).join('');
+                body.innerHTML = getSummaryData().filter(s => s.total > 0).map(sum => `<tr onclick='selectedSummaryCat = ${JSON.stringify(sum)}; render();' class="hover:bg-slate-50 cursor-pointer"><td class="px-8 py-6 font-black text-slate-800">${sum.category}</td><td class="px-8 py-6 text-right font-black text-lg">${formatIDR(sum.total)} <i data-lucide="chevron-right" class="w-4 h-4 inline text-slate-300"></i></td></tr>`).join('');
             }
             lucide.createIcons();
         }
 
-        // --- Business Actions ---
+        // --- Business Logic ---
         async function updateKasStatus(id) {
             const idx = kasOutEntries.findIndex(e => e.id.toString() === id.toString());
             if (idx === -1) return;
@@ -577,7 +580,10 @@
             container.innerHTML = html; lucide.createIcons();
         }
 
-        function toggleCustom(id, val) { document.getElementById(id).style.display = (val === 'Lainnya') ? 'block' : 'none'; }
+        function toggleCustom(id, val) { 
+            const el = document.getElementById(id);
+            if(el) el.style.display = (val === 'Lainnya') ? 'block' : 'none'; 
+        }
 
         async function handleFormSubmit(e) {
             e.preventDefault();
@@ -589,8 +595,8 @@
                 Object.assign(pl, { name: fd.get('name'), role: fd.get('role'), allowanceDays: parseInt(fd.get('allowanceDays')) || 0, transportDays: parseInt(fd.get('transportDays')) || 0, transportRate: parseInt(fd.get('transportRate')) || 0 }); 
                 if(editingId) crewEntries = crewEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else crewEntries.push(pl); 
             } else if (type === 'others') { 
-                const selectedCat = fd.get('category');
-                pl.category = (selectedCat === 'Lainnya') ? fd.get('customCat') : selectedCat;
+                const selCat = fd.get('category');
+                pl.category = (selCat === 'Lainnya') ? fd.get('customCat') : selCat;
                 if (!currentCategories.includes(pl.category)) { currentCategories.push(pl.category); currentCategories.sort(); }
                 if(editingId) otherEntries = otherEntries.map(e => e.id.toString() === editingId.toString() ? pl : e); else otherEntries.push(pl);
             } else if (type === 'kasOut') {
